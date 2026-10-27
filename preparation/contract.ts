@@ -32,17 +32,8 @@ export const executionSchema = z.object({
   providerId: z.string(),
   model: z.string(),
   permissionMode: z.enum(['full', 'auto', 'accept-edits']),
-  reasoningLevel: z.enum([
-    'none',
-    'low',
-    'medium',
-    'high',
-    'xhigh',
-    'max',
-    'ultra',
-    'ultracode'
-  ]),
-  serviceTier: z.enum(['default', 'fast'])
+  reasoningLevel: z.string().min(1).max(100),
+  serviceTier: z.string().min(1).max(100)
 });
 export const taskRefSchema = z.object({
   projectId: id,

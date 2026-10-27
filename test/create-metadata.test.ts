@@ -1440,7 +1440,7 @@ test('GitHub lists only issues from project-scoped repositories', async () => {
     runGithubCli: async args => {
       cliCalls.push(args);
       if (args[0] === 'auth') return '';
-      return JSON.stringify([
+      return JSON.stringify([[
         {
           number: 42,
           title: 'Native issue',
@@ -1464,7 +1464,7 @@ test('GitHub lists only issues from project-scoped repositories', async () => {
           updated_at: '2026-08-26T13:00:00.000Z',
           pull_request: {}
         }
-      ]);
+      ]]);
     }
   });
 

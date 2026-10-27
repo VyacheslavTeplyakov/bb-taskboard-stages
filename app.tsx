@@ -1,8 +1,11 @@
+import { GithubStageSettings, IssueStageControl, StageKanbanBoard, StageProfileContext, useStageProfile } from './stage-app.tsx';
+import type { StageProfile } from './github-stages.ts';
 import { registerPreparationApp } from './preparation/app.js';
 import { clipboardTicketImages, readTicketImages, type TicketImage } from './ticket-images.js';
 import { originalTicketPath, requestTaskboardOpen, ticketThreadId } from './factory/navigation.js';
 import {
   useCallback,
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -22,7 +25,6 @@ import {
   useBbContext,
   useBbNavigate,
   useComposer,
-  useComposerView,
   useRealtime,
   useRealtimeConnectionState,
   useRpc,
@@ -32,7 +34,7 @@ import {
   type PluginPendingInteractionProps,
   type PluginComposerMention,
   type PluginThreadHeaderActionProps,
-  type PluginThreadPanelProps
+  type ExperimentalThreadActionTabProps
 } from '@get-bb/plugin-sdk/app';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -176,11 +178,11 @@ const SOURCE_FILTER_OPTIONS = [
   'gitlab',
   'gitea'
 ] as const;
-const RIGHT_PANEL_PINNED_STORAGE_KEY = 'bb-taskboard:right-panel-pinned';
-const RIGHT_PANEL_PIN_EVENT = 'bb-taskboard:right-panel-pin-changed';
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'bb-taskboard:sidebar-collapsed';
-const SIDEBAR_WIDTH_STORAGE_KEY = 'bb-taskboard:sidebar-width';
-const LAST_PROJECT_STORAGE_KEY = 'bb-taskboard:last-project';
+const RIGHT_PANEL_PINNED_STORAGE_KEY = 'bb-taskboard-stages:right-panel-pinned';
+const RIGHT_PANEL_PIN_EVENT = 'bb-taskboard-stages:right-panel-pin-changed';
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'bb-taskboard-stages:sidebar-collapsed';
+const SIDEBAR_WIDTH_STORAGE_KEY = 'bb-taskboard-stages:sidebar-width';
+const LAST_PROJECT_STORAGE_KEY = 'bb-taskboard-stages:last-project';
 const SIDEBAR_AUTO_COLLAPSE_WIDTH = 720;
 const SIDEBAR_DEFAULT_WIDTH = 208;
 const SIDEBAR_MIN_WIDTH = 180;
@@ -531,7 +533,7 @@ interface CreatedIssueResult {
   warnings: string[];
   assigneeConfirmation: AssigneeConfirmation;
   mention: {
-    provider: 'external-work-item';
+    provider: 'stageboard-work-item';
     id: string;
     label: string;
   };
@@ -1607,7 +1609,7 @@ function DirectCreateIssueAction({
 }
 
 function ComposerCreateIssueAction() {
-  const view = useComposerView();
+  const view = useComposer();
   const composer = useComposer();
   const { projectId: contextProjectId } = useBbContext();
   const [capturedPrompt, setCapturedPrompt] = useState<string | null>(null);
@@ -1620,7 +1622,7 @@ function ComposerCreateIssueAction() {
       : contextProjectId;
   const currentProjectRef = useRef(projectId);
   currentProjectRef.current = projectId;
-  const hasPrompt = view.draft.text.trim().length > 0 || view.draft.attachmentCount > 0;
+  const hasPrompt = view.text.trim().length > 0 || view.attachmentCount > 0;
   const guidance = !projectId
     ? 'Choose a project to create an issue'
     : !hasPrompt
@@ -1640,7 +1642,7 @@ function ComposerCreateIssueAction() {
                 className="size-7 bg-transparent text-foreground hover:bg-state-hover"
                 aria-label="Create Taskboard issue"
                 data-taskboard-create-button
-                disabled={!projectId || !hasPrompt || view.run.isSubmitting || capturing}
+                disabled={!projectId || !hasPrompt || view.isSubmitting || capturing}
                 onMouseDown={event => event.preventDefault()}
                 onClick={async () => {
                   if (!projectId) {
@@ -1654,15 +1656,15 @@ function ComposerCreateIssueAction() {
                     composer.focus();
                     return;
                   }
-                  const prompt = view.draft.text;
+                  const prompt = view.text;
                   setCapturing(true);
                   setCapturedImages([]); setAttachmentWarning(undefined);
                   try {
                     const captured = await clipboardTicketImages();
                     setCapturedImages(captured);
-                    if (view.draft.attachmentCount > captured.length) setAttachmentWarning('BB cannot expose existing composer attachments here. Paste any missing images into this ticket.');
+                    if (view.attachmentCount > captured.length) setAttachmentWarning('BB cannot expose existing composer attachments here. Paste any missing images into this ticket.');
                   } catch {
-                    if (view.draft.attachmentCount > 0) setAttachmentWarning('Could not read clipboard images. Paste the composer images into this ticket.');
+                    if (view.attachmentCount > 0) setAttachmentWarning('Could not read clipboard images. Paste the composer images into this ticket.');
                   } finally {
                     if (currentProjectRef.current === projectId) setCapturedPrompt(prompt);
                     setCapturing(false);
@@ -1687,7 +1689,7 @@ function ComposerCreateIssueAction() {
             initialImages={capturedImages}
             attachmentWarning={attachmentWarning}
             onCreated={result => {
-              composer.insertMention(result.mention);
+              composer.insert(result.mention);
               composer.focus();
             }}
           />
@@ -3612,6 +3614,7 @@ function WorkItemRow({
         {item.title}
       </span>
       <span className="tb-row-trailing tb-meta pointer-events-none relative z-[1] flex min-w-0 items-center gap-2 overflow-hidden text-xs">
+        <span className="pointer-events-auto relative z-10"><IssueStageControl item={item} /></span>
         {priority ? <PriorityMark priority={priority} /> : null}
         {showProject && project ? (
           <span className="max-w-28 truncate" title={project.name}>
@@ -3657,11 +3660,12 @@ function ListStateGroups({
   onMove: (item: WorkItem, option: WorkStatusOption) => Promise<void>;
   onOpen: (item: WorkItem) => void;
 }) {
+  const stageProfile = useContext(StageProfileContext);
   return workflowStatusGroups(items, statusOrder).map(group => {
     const headingId = `${idPrefix}-state-${encodeURIComponent(group.key)}`;
     const contentId = `${headingId}-items`;
     const preferenceKey = `${idPrefix}:${group.key}`;
-    const collapsed = isGroupCollapsed({
+    const collapsed = stageProfile?.columns.length ? (collapsedGroups[preferenceKey] ?? false) : isGroupCollapsed({
       overrides: collapsedGroups,
       groupKey: preferenceKey,
       category: group.category,
@@ -4481,6 +4485,10 @@ function TrackerList({
     view
   } = preferences;
   const [items, setItems] = useState<WorkItem[] | undefined>();
+  const [stageProfile, setStageProfile] = useState<StageProfile | null>(null);
+  const [stageSync, setStageSync] = useState<{ lastSyncedAt: string | null; error: string | null }>({ lastSyncedAt: null, error: null });
+  const loadedProject = useRef(projectId);
+
   const [boardSettings, setBoardSettings] = useState<ProjectBoardSettings>(() =>
     defaultProjectBoardSettings(projectId ?? 'proj_across_projects')
   );
@@ -4499,7 +4507,7 @@ function TrackerList({
   const [committedQuery, setCommittedQuery] = useState(() => query.trim());
   const [error, setError] = useState<string | null>(null);
   const requestRevisionRef = useRef(0);
-  const stateFilterEnabled = boardSettings.enabledFilters.includes('state');
+  const stateFilterEnabled = boardSettings.enabledFilters.includes('state') && !stageProfile?.columns.length;
 
   useEffect(() => {
     if (projectId === null) {
@@ -4539,6 +4547,9 @@ function TrackerList({
     // in-memory defaults until the real settings arrive (this effect reruns
     // on boardSettingsReady and re-applies the committed view).
     const requestRevision = ++requestRevisionRef.current;
+    if (loadedProject.current !== projectId) {
+      loadedProject.current = projectId; setItems(undefined); setStageProfile(null);
+    }
     if (projectId !== null) setAuthoritativeProvider(null);
     setError(null);
     try {
@@ -4553,6 +4564,32 @@ function TrackerList({
       });
       if (requestRevision !== requestRevisionRef.current) return;
       const provider = result.provider;
+      let loadedItems = result.items;
+      if (projectId !== null && provider === 'github') {
+        const stageConfig = await rpc.call('getStageProfile', { projectId });
+        if (requestRevision !== requestRevisionRef.current) return;
+        setStageProfile(stageConfig.profile);
+        if (stageConfig.profile.columns.length > 0) {
+          const all: WorkItem[] = [];
+          let offset: number | null = 0;
+          let expectedRevision: string | undefined;
+          let pageCount = 0;
+          while (offset !== null) {
+            if (++pageCount > 1000) throw new Error('Stage board exceeds the bounded page limit');
+            const page: { items: Array<{ item: WorkItem }>; revision: string; nextOffset: number | null; lastSyncedAt: string | null; error: string | null } = await rpc.call('listStageItems', { projectId, offset, limit: 500,
+              ...(expectedRevision === undefined ? {} : { expectedRevision }) });
+            if (requestRevision !== requestRevisionRef.current) return;
+            expectedRevision = page.revision; offset = page.nextOffset;
+            all.push(...page.items.map(row => row.item));
+            setStageSync({ lastSyncedAt: page.lastSyncedAt, error: page.error });
+          }
+          const query = committedQuery.trim().toLowerCase();
+          // Stage mode has an explicit Open/Closed filter below. A saved native
+          // State group filter is hidden here and must not silently omit cards.
+          loadedItems = all.filter(item =>
+            !query || [item.key, item.title, item.description, item.project ?? ''].some(value => value.toLowerCase().includes(query)));
+        }
+      } else setStageProfile(null);
       if (projectId !== null && provider) {
         browsePreferenceStore.reconcileProvider(
           projectBrowseScope(projectId),
@@ -4561,7 +4598,7 @@ function TrackerList({
         );
         setAuthoritativeProvider(provider);
       }
-      setItems(result.items);
+      setItems(loadedItems);
     } catch (nextError) {
       if (requestRevision !== requestRevisionRef.current) return;
       setError(describeError(nextError));
@@ -4883,7 +4920,7 @@ function TrackerList({
             setPresetNameDraft('');
           }}
           source={projectId === null ? source : ALL_SOURCES}
-          enabledFilters={boardSettings.enabledFilters}
+          enabledFilters={stageProfile?.columns.length ? boardSettings.enabledFilters.filter(field => field !== 'state') : boardSettings.enabledFilters}
           stateCategories={stateCategories}
           statuses={statuses}
           statusOptions={availableStatuses}
@@ -4982,6 +5019,14 @@ function TrackerList({
                 </Button>
               </div>
             </ListMeasure>
+          ) : projectId !== null && view === 'kanban' && stageProfile?.columns.length ? (
+            <StageKanbanBoard key={projectId} profile={stageProfile} items={visibleItems}
+              lastSyncedAt={stageSync.lastSyncedAt} syncError={stageSync.error} onOpen={onOpen}
+              onChanged={changed => setItems(current => current?.map(item =>
+                item.bbProjectId === changed.bbProjectId && item.locator === changed.locator ? changed : item))}
+              onRefresh={async () => {
+                await rpc.call('refresh', { projectId, source: 'github' }); await loadItems();
+              }} />
           ) : projectId !== null && view === 'kanban' ? (
             <KanbanBoard
               key={projectId}
@@ -5059,7 +5104,7 @@ function TrackerList({
   );
   return (
     <TooltipProvider delayDuration={180}>
-      {content}
+      <StageProfileContext.Provider value={stageProfile?.projectId === projectId ? stageProfile : null}>{content}</StageProfileContext.Provider>
       <Dialog
         open={presetNameDraft !== null}
         onOpenChange={open => {
@@ -5375,6 +5420,7 @@ function TrackerDetail({
   onAddToComposer?: (item: WorkItem) => void;
 }) {
   const rpc = useRpc<TaskboardRpcContract>();
+  const { profile: detailStageProfile } = useStageProfile(route.projectId, route.source === 'github');
   const navigate = useBbNavigate();
   const detailTabsId = useId();
   const [item, setItem] = useState<WorkItemDetail | null | undefined>();
@@ -5627,6 +5673,9 @@ function TrackerDetail({
               variant="detail"
               onMove={moveItemStatus}
             />
+            <IssueStageControl item={item} profile={detailStageProfile} onChanged={changed =>
+              setItem(current => current && current.locator === changed.locator && current.bbProjectId === changed.bbProjectId
+                ? { ...current, ...changed, comments: current.comments } : current)} />
             <SourceMark source={item.source} />
           </div>
           <div className="flex flex-col gap-4 @[60rem]:flex-row @[60rem]:items-start">
@@ -7187,6 +7236,7 @@ function ManageView({
                 return result.settings;
               }}
             />
+            {config.source === 'github' && <GithubStageSettings key={`stages:${config.projectId}`} projectId={config.projectId} />}
             <FactoryProjectSettings key={`factory:${config.projectId}:${config.source}`}
               projectId={config.projectId} provider={config.source} />
             <FilterPresetsForm
@@ -7654,7 +7704,7 @@ function TaskboardRightPanel({
         return;
       }
       setComposerAnnouncement(`Added ${safeMention.label} to chat`);
-      composer.insertMention(safeMention);
+      composer.insert(safeMention);
       composer.focus();
       toast.success(`Added ${safeMention.label} to chat`);
     },
@@ -7881,7 +7931,7 @@ function TaskboardRightPanel({
   );
 }
 
-function TaskboardThreadPanel({ threadId }: PluginThreadPanelProps) {
+function TaskboardThreadPanel({ threadId }: ExperimentalThreadActionTabProps) {
   const rpc = useRpc<TaskboardRpcContract>();
   const { projectId: contextProjectId, threadId: contextThreadId } =
     useBbContext();
@@ -8259,7 +8309,7 @@ function TaskboardSettingsInfo() {
 
 export default definePluginApp(app => {
   registerPreparationApp(app);
-  app.slots.messageDirective({ id: 'taskboard-result', component: TaskboardResultDirective });
+  app.slots.messageDirective({ id: 'stageboard-result', component: TaskboardResultDirective });
   app.slots.experimental_threadHeaderAction({
     id: 'taskboard-live-progress',
     title: 'Task progress',
@@ -8272,28 +8322,30 @@ export default definePluginApp(app => {
       { id: 'create-issue', component: ComposerCreateIssueAction }
     ]
   });
-  app.slots.threadPanelAction({
+  app.slots.experimental_tab({
+    context: { kind: 'thread' },
+    availability: 'action',
     id: THREAD_PANEL_ACTION_ID,
-    title: 'Taskboard',
+    title: 'Taskboard Stages',
     icon: 'Target',
     component: TaskboardThreadPanel,
     layout: 'flush'
   });
   app.slots.experimental_newThreadPanelAction({
     id: 'taskboard-new-thread-panel',
-    title: 'Taskboard',
+    title: 'Taskboard Stages',
     icon: 'Target',
     component: TaskboardNewThreadPanel,
     layout: 'flush'
   });
   app.slots.experimental_threadHeaderAction({
     id: 'open-taskboard-panel',
-    title: 'Taskboard',
+    title: 'Taskboard Stages',
     component: TaskboardThreadHeaderAction
   });
   app.slots.navPanel({
     id: 'taskboard',
-    title: 'Taskboard',
+    title: 'Taskboard Stages',
     icon: 'Target',
     path: PANEL_PATH,
     component: TaskboardPanel,

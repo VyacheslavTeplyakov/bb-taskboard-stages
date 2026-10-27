@@ -2,9 +2,9 @@ import type { PluginComposerMention } from '@get-bb/plugin-sdk/app';
 import type { WorkItem } from './contract.js';
 
 export const TASKBOARD_COMPOSER_MIME =
-  'application/x-bb-taskboard-mention+json';
+  'application/x-bb-taskboard-stages-mention+json';
 
-const TASKBOARD_MENTION_PROVIDER = 'external-work-item';
+const TASKBOARD_MENTION_PROVIDER = 'stageboard-work-item';
 const MAX_DRAG_PAYLOAD_LENGTH = 2_048;
 const MAX_MENTION_ID_LENGTH = 1_024;
 const MAX_MENTION_LABEL_LENGTH = 160;

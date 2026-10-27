@@ -120,7 +120,7 @@ const rpc = {
     if (method === 'createIssue') {
       window.createdInputs.push(structuredClone(input));
       return { item: window.factoryItem, warnings: [], assigneeConfirmation: { confirmed: true, id: null },
-        mention: { provider: 'external-work-item', id: 'new', label: 'TEST-1' } };
+        mention: { provider: 'stageboard-work-item', id: 'new', label: 'TEST-1' } };
     }
     if (method === 'factoryDiff') return {
       patch: `--- a/${input.path}\n+++ b/${input.path}\n@@ -1 +1 @@\n-const saved = null;\n+const saved = loadProjectPreferences(projectId);\n`,

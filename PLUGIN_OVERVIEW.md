@@ -1,15 +1,13 @@
-Bring external issues into BB with a project-scoped list or Kanban board. Each BB project selects GitHub, GitLab, Gitea, Linear or Jira.
+## Канбан проектов по меткам GitHub
 
-## What you get
+Taskboard Stages показывает этап задачи по метке stage:*, сохраняя независимое состояние issue Open/Closed. У каждого проекта свои названия и порядок колонок. Перемещайте карточки мышью или через меню; Archivarius может выполнять те же операции через bb stageboard.
 
-- Browse cached summaries and open live descriptions, assignees, labels and comments.
-- Move issues through provider statuses and review a new issue before creating it.
-- Keep the board beside a conversation, attach issues as context and use the Taskboard CLI.
+## Настройка
 
-## Gitea
+Сохранение профиля не изменяет GitHub. Наличие меток проверяется отдельно, создание отсутствующих меток выполняется явным действием. Issues без этапа и с ошибочными метками остаются видимыми.
 
-Self-hosted Gitea repositories use an existing tea login and an explicit host/owner/repository. Taskboard supports paginated issues, live comments, creation, labels, assignees, milestones and due dates. Native Open/Closed and existing status/* labels provide workflow stages. Status moves preserve unrelated labels and close or reopen the issue as appropriate.
+## Требования
 
-## Requirements
+Нужны BB 0.47.1 или новее, GitHub-репозиторий проекта и авторизованный GitHub CLI с правами на чтение задач; для изменения этапов нужны права на изменение меток. GitHub Projects и дополнительный трекер не требуются.
 
-Configure the selected provider for each project. Gitea requires tea 0.16 or newer on the BB server machine and a login with repository access. Authentication remains in tea. GitHub uses BB's GitHub integration; GitLab requires glab; Linear and Jira Cloud require their provider configuration. Gitea creation supports text, and status changes can be partial because label and state updates use separate requests.
+Основано на [Taskboard](https://github.com/MateoCerquetella/bb-plugins) под лицензией MIT. Локальный кандидат имеет отдельные настройки и не переносит данные штатного плагина автоматически.

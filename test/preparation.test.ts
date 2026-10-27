@@ -265,7 +265,7 @@ test('job service routes context to the remote host and preserves partial succes
   const spawns: any[] = [];
   let poll = false;
   const bb: any = {
-    pluginId: 'taskboard',
+    pluginId: 'taskboard-stages',
     storage: { database: () => db },
     rpc: { register() {} },
     ui: { registerMentionProvider() {} },

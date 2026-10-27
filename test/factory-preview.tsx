@@ -54,7 +54,7 @@ function Preview() {
     </div>
     <div id="preview-result" style={{ padding: 20 }}>
       <TaskboardResultDirective attributes={{ kind: 'review', verdict: 'blocked' }}
-        source={'::taskboard-result{kind="review" verdict="blocked"}'}
+        source={'::stageboard-result{kind="review" verdict="blocked"}'}
         message={{ id: 'message-review', threadId: 'thr_test', turnId: 'turn', projectId: 'proj_test' }}
         openWorkspaceFile={null} />
       <h3>Blockers</h3>

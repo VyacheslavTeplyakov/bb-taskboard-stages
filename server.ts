@@ -1,4 +1,5 @@
 import { createGiteaAdapter, parseGiteaRef } from './sources/gitea.js';
+import { createStageFeature } from './stage-server.ts';
 import { registerPreparation } from './preparation/server.js';
 import { createTicketImprovementService } from './ticket-improvement-service.js';
 import {
@@ -197,6 +198,7 @@ interface ParsedCliArguments {
 }
 
 const CLI_OPTIONS_BY_COMMAND = new Map<string, ReadonlySet<string>>([
+  ['stages', new Set(['--project', '--json', '--cached'])],
   ['status', new Set(['--project', '--json'])],
   ['factory', new Set(['--project', '--json'])],
   [
@@ -239,7 +241,7 @@ export function parseTaskboardCliArguments(
   argv: string[]
 ): ParsedCliArguments {
   const allowedOptions = CLI_OPTIONS_BY_COMMAND.get(command);
-  if (!allowedOptions) throw new Error('Unknown bb taskboard command');
+  if (!allowedOptions) throw new Error('Unknown bb stageboard command');
 
   const positionals: string[] = [];
   const seenOptions = new Set<string>();
@@ -285,7 +287,7 @@ export function parseTaskboardCliArguments(
       continue;
     }
     if (!allowedOptions.has(argument)) {
-      throw new Error('Unsupported bb taskboard option');
+      throw new Error('Unsupported bb stageboard option');
     }
     if (seenOptions.has(argument)) {
       throw new Error(`${argument} may only be provided once`);
@@ -2155,7 +2157,38 @@ export default async function plugin(bb: BbPluginApi) {
       }
     }
   });
+  const stageFeature = createStageFeature(bb, {
+    assertProject: assertProjectExists,
+    assertGithub: projectId => assertSelectedSource(projectId, 'github'),
+    adapter: async projectId => {
+      // Stage writes already own the project's mutation queue. The general
+      // adapters() reader waits for that queue and would wait for itself here.
+      const revision = currentRevision(projectId, 'github');
+      assertSelectedSource(projectId, 'github');
+      const repositories = await githubReposForProject(projectId);
+      assertSelectedSource(projectId, 'github');
+      if (revision !== currentRevision(projectId, 'github')) {
+        throw new Error('GitHub configuration changed; refresh before retrying');
+      }
+      return createGithubAdapter({ enabled: true, repositories });
+    },
+    list: (projectId, limit, offset) => store.list({ projectId, source: 'github', limit, offset }),
+    syncState: projectId => store.syncState(projectId, 'github'),
+    revision: projectId => `${currentRevision(projectId, 'github')}:${store.cacheVersion()}`,
+    persist: item => store.upsert(item),
+    mutate: async (projectId, operation) => {
+      const revision = currentRevision(projectId, 'github');
+      return enqueueMutation(projectId, ['github'], async () => {
+        assertSelectedSource(projectId, 'github');
+        if (revision !== currentRevision(projectId, 'github')) throw new Error('GitHub configuration or board changed; refresh before retrying');
+        advanceSourceRevision(projectId, 'github');
+        return operation();
+      });
+    }
+  });
+
   const handlers: PluginRpcHandlers<typeof taskboardRpcContract> = {
+    ...stageFeature.handlers,
     async factoryGetProject(input) {
       await assertProjectExists(input.projectId);
       const provider = projectConfig(input.projectId, true).source;
@@ -2403,7 +2436,7 @@ export default async function plugin(bb: BbPluginApi) {
         warnings,
         assigneeConfirmation,
         mention: {
-          provider: 'external-work-item',
+          provider: 'stageboard-work-item',
           id: mentionId(item),
           label: item.key
         }
@@ -2471,7 +2504,7 @@ export default async function plugin(bb: BbPluginApi) {
   });
 
   bb.ui.registerMentionProvider({
-    id: 'external-work-item',
+    id: 'stageboard-work-item',
     label: 'Taskboard',
     triggers: ['@', '#'],
     async search({ query, projectId }) {
@@ -2499,22 +2532,24 @@ export default async function plugin(bb: BbPluginApi) {
   });
 
   bb.cli.register({
-    name: 'taskboard',
+    name: 'stageboard',
     summary: 'Browse tasks and inspect durable preparation briefs',
     commands: [
+      { name: 'stages', summary: 'Read or change GitHub stage labels without changing issue state',
+        usage: 'bb stageboard stages profile|list [offset] [revision]|options <locator>|move <locator> <stage:label>|prepare [--project <id>] [--json] [--cached]' },
       { name: 'factory', summary: 'Inspect, enable, pause, or scan the project factory',
-        usage: 'bb taskboard factory status|enable [concurrency]|pause|scan [--project <proj_id>] [--json]' },
-      {name: 'prepare', summary: 'List, inspect or export preparation packets without starting implementation', usage: 'bb taskboard prepare list [--project <id>] | show <id> | export <id>'},
+        usage: 'bb stageboard factory status|enable [concurrency]|pause|scan [--project <proj_id>] [--json]' },
+      {name: 'prepare', summary: 'List, inspect or export preparation packets without starting implementation', usage: 'bb stageboard prepare list [--project <id>] | show <id> | export <id>'},
       {
         name: 'status',
         summary: 'Show connector status for a BB project',
-        usage: 'bb taskboard status [--project <proj_id>] [--json]'
+        usage: 'bb stageboard status [--project <proj_id>] [--json]'
       },
       {
         name: 'list',
         summary: 'List cached project work, refreshing first by default',
         usage:
-          'bb taskboard list [--project <proj_id>] ' +
+          'bb stageboard list [--project <proj_id>] ' +
           '[--source linear|github|jira|gitlab|gitea] [--query <text>] ' +
           '[--preset <name>] [--cached] [--json]'
       },
@@ -2522,47 +2557,47 @@ export default async function plugin(bb: BbPluginApi) {
         name: 'show',
         summary: 'Fetch one external issue in a BB project',
         usage:
-          'bb taskboard show <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
+          'bb stageboard show <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
       },
       {
         name: 'transitions',
         summary: 'List valid status targets for one external issue',
         usage:
-          'bb taskboard transitions <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
+          'bb stageboard transitions <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
       },
       {
         name: 'move',
         summary: 'Move one external issue to an exact listed status id',
         usage:
-          'bb taskboard move <linear|github|jira|gitlab|gitea> <locator> --status <id> [--project <proj_id>] [--json]'
+          'bb stageboard move <linear|github|jira|gitlab|gitea> <locator> --status <id> [--project <proj_id>] [--json]'
       },
       {
         name: 'refresh',
         summary: "Refresh a BB project's external issue caches",
         usage:
-          'bb taskboard refresh [linear|github|jira|gitlab|gitea] [--project <proj_id>] [--json]'
+          'bb stageboard refresh [linear|github|jira|gitlab|gitea] [--project <proj_id>] [--json]'
       },
       {
         name: 'config',
         summary: 'Show or update nonsecret project connector configuration',
         usage:
-          'bb taskboard config [--project <proj_id>] [--source linear|github|jira|gitlab|gitea] [--linear-team <key>] [--jira-url <url>] [--jira-email <email>] [--jira-jql <text>] [--gitlab-project <ref>] [--gitea-login <name>] [--gitea-project <host/owner/repo>] [--json]'
+          'bb stageboard config [--project <proj_id>] [--source linear|github|jira|gitlab|gitea] [--linear-team <key>] [--jira-url <url>] [--jira-email <email>] [--jira-jql <text>] [--gitlab-project <ref>] [--gitea-login <name>] [--gitea-project <host/owner/repo>] [--json]'
       },
       {
         name: 'credentials',
         summary: 'Open a secure form for project connector credentials',
-        usage: 'bb taskboard credentials [--project <proj_id>] [--json]'
+        usage: 'bb stageboard credentials [--project <proj_id>] [--json]'
       },
       {
         name: 'presets',
         summary: 'List, save, rename, or delete project filter presets',
         usage:
-          'bb taskboard presets list [--project <proj_id>] [--json]\n' +
-          'bb taskboard presets save <name> --from-state <json> ' +
+          'bb stageboard presets list [--project <proj_id>] [--json]\n' +
+          'bb stageboard presets save <name> --from-state <json> ' +
           '[--project <proj_id>] [--json]\n' +
-          'bb taskboard presets rename <name> <new-name> ' +
+          'bb stageboard presets rename <name> <new-name> ' +
           '[--project <proj_id>] [--json]\n' +
-          'bb taskboard presets delete <name> ' +
+          'bb stageboard presets delete <name> ' +
           '[--project <proj_id>] [--json]'
       }
     ],
@@ -2603,6 +2638,32 @@ export default async function plugin(bb: BbPluginApi) {
           return projectById(parsedProject.data);
         };
 
+        if (command === 'stages') {
+          const project = await requireProject();
+          const [verb = 'profile', locator, label] = args.positionals;
+          let result: unknown;
+          if (verb === 'profile' && args.positionals.length <= 1) {
+            result = await stageFeature.handlers.getStageProfile({ projectId: project.id });
+          } else if (verb === 'list' && args.positionals.length <= 3) {
+            const offset = locator === undefined ? 0 : Number(locator);
+            if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('Stage list offset must be a nonnegative integer');
+            if (offset > 0 && !label) throw new Error('Pass the revision returned by the first stage list page');
+            if (!args.cached && offset === 0) await syncAll(project.id, 'github', true);
+            result = await stageFeature.handlers.listStageItems({ projectId: project.id, offset, limit: 100,
+              ...(label ? { expectedRevision: label } : {}) });
+          } else if (verb === 'options' && locator && args.positionals.length === 2) {
+            result = await stageFeature.handlers.stageOptions({ projectId: project.id, locator });
+          } else if (verb === 'move' && locator && label && args.positionals.length === 3) {
+            const current = await stageFeature.handlers.stageOptions({ projectId: project.id, locator });
+            result = await stageFeature.handlers.updateItemStage({ projectId: project.id, locator, label,
+              expectedStageLabels: current.stage.labels, profileRevision: current.profile.revision });
+          } else if (verb === 'prepare' && args.positionals.length === 1) {
+            const current = await stageFeature.profile(project.id);
+            result = await stageFeature.handlers.stageLabelSetup({ projectId: project.id,
+              profileRevision: current.revision, createMissing: true });
+          } else throw new Error('Use stages profile, list, options <locator>, move <locator> <stage:label>, or prepare');
+          return { exitCode: 0, stdout: formatFilterPresetCliJson(result) };
+        }
         if (command === 'factory') {
           const project = await requireProject();
           const verb = args.positionals[0] ?? 'status';
@@ -2630,7 +2691,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'status') {
           if (args.positionals.length > 0) {
             throw new Error(
-              'Usage: bb taskboard status [--project <proj_id>] [--json]'
+              'Usage: bb stageboard status [--project <proj_id>] [--json]'
             );
           }
           const project = await requireProject();
@@ -2653,7 +2714,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'refresh') {
           if (args.positionals.length > 1) {
             throw new Error(
-              'Usage: bb taskboard refresh [linear|github|jira|gitlab|gitea] [--project <proj_id>] [--json]'
+              'Usage: bb stageboard refresh [linear|github|jira|gitlab|gitea] [--project <proj_id>] [--json]'
             );
           }
           const project = await requireProject();
@@ -2697,7 +2758,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'list') {
           if (args.positionals.length > 0) {
             throw new Error(
-              'Usage: bb taskboard list [--project <proj_id>] ' +
+              'Usage: bb stageboard list [--project <proj_id>] ' +
                 '[--source linear|github|jira|gitlab|gitea] [--query <text>] ' +
                 '[--preset <name>] [--cached] [--json]'
             );
@@ -2769,7 +2830,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'show') {
           if (args.positionals.length !== 2) {
             throw new Error(
-              'Usage: bb taskboard show <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
+              'Usage: bb stageboard show <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
             );
           }
           const project = await requireProject();
@@ -2793,7 +2854,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'transitions') {
           if (args.positionals.length !== 2) {
             throw new Error(
-              'Usage: bb taskboard transitions <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
+              'Usage: bb stageboard transitions <linear|github|jira|gitlab|gitea> <locator> [--project <proj_id>] [--json]'
             );
           }
           const project = await requireProject();
@@ -2833,7 +2894,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'move') {
           if (args.positionals.length !== 2 || !args.statusId) {
             throw new Error(
-              'Usage: bb taskboard move <linear|github|jira|gitlab|gitea> <locator> --status <id> [--project <proj_id>] [--json]'
+              'Usage: bb stageboard move <linear|github|jira|gitlab|gitea> <locator> --status <id> [--project <proj_id>] [--json]'
             );
           }
           const project = await requireProject();
@@ -2857,7 +2918,7 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'config') {
           if (args.positionals.length > 0) {
             throw new Error(
-              'Usage: bb taskboard config [--project <proj_id>] [--source linear|github|jira|gitlab|gitea] [--linear-team <key>] [--jira-url <url>] [--jira-email <email>] [--jira-jql <text>] [--gitlab-project <ref>] [--gitea-login <name>] [--gitea-project <host/owner/repo>] [--json]'
+              'Usage: bb stageboard config [--project <proj_id>] [--source linear|github|jira|gitlab|gitea] [--linear-team <key>] [--jira-url <url>] [--jira-email <email>] [--jira-jql <text>] [--gitlab-project <ref>] [--gitea-login <name>] [--gitea-project <host/owner/repo>] [--json]'
             );
           }
           const parsedSource = args.source
@@ -2923,12 +2984,12 @@ export default async function plugin(bb: BbPluginApi) {
         if (command === 'credentials') {
           if (args.positionals.length > 0) {
             throw new Error(
-              'Usage: bb taskboard credentials [--project <proj_id>] [--json]'
+              'Usage: bb stageboard credentials [--project <proj_id>] [--json]'
             );
           }
           if (!ctx.threadId) {
             throw new Error(
-              'bb taskboard credentials must run from an active BB thread'
+              'bb stageboard credentials must run from an active BB thread'
             );
           }
           const project = await requireProject();
@@ -2993,7 +3054,7 @@ export default async function plugin(bb: BbPluginApi) {
           const rest = args.positionals.slice(1);
           if (!['list', 'save', 'rename', 'delete'].includes(verb)) {
             throw new Error(
-              'Usage: bb taskboard presets <list|save|rename|delete> ...'
+              'Usage: bb stageboard presets <list|save|rename|delete> ...'
             );
           }
           const project = await requireProject();
@@ -3001,7 +3062,7 @@ export default async function plugin(bb: BbPluginApi) {
           if (verb === 'list') {
             if (rest.length > 0) {
               throw new Error(
-                'Usage: bb taskboard presets list ' +
+                'Usage: bb stageboard presets list ' +
                   '[--project <proj_id>] [--json]'
               );
             }
@@ -3021,7 +3082,7 @@ export default async function plugin(bb: BbPluginApi) {
           if (verb === 'save') {
             if (rest.length !== 1 || !args.fromState) {
               throw new Error(
-                'Usage: bb taskboard presets save <name> ' +
+                'Usage: bb stageboard presets save <name> ' +
                   '--from-state <json> [--project <proj_id>] [--json]'
               );
             }
@@ -3054,7 +3115,7 @@ export default async function plugin(bb: BbPluginApi) {
           if (verb === 'rename') {
             if (rest.length !== 2) {
               throw new Error(
-                'Usage: bb taskboard presets rename <name> <new-name> ' +
+                'Usage: bb stageboard presets rename <name> <new-name> ' +
                   '[--project <proj_id>] [--json]'
               );
             }
@@ -3076,7 +3137,7 @@ export default async function plugin(bb: BbPluginApi) {
           if (verb === 'delete') {
             if (rest.length !== 1) {
               throw new Error(
-                'Usage: bb taskboard presets delete <name> ' +
+                'Usage: bb stageboard presets delete <name> ' +
                   '[--project <proj_id>] [--json]'
               );
             }
@@ -3091,7 +3152,7 @@ export default async function plugin(bb: BbPluginApi) {
             };
           }
         }
-        throw new Error('Unknown bb taskboard command');
+        throw new Error('Unknown bb stageboard command');
       } catch (error) {
         return { exitCode: 1, stderr: `${errorMessage(error)}\n` };
       }

@@ -88,6 +88,7 @@ export interface StoredSyncState {
 }
 
 export interface WorkItemFilters {
+  offset?: number;
   /** Omit to search every project cache. */
   projectId?: string;
   /** Internal allowlist for intentional cross-project views. */
@@ -764,6 +765,9 @@ export function createWorkItemStore(bb: BbPluginApi) {
   }
 
   return {
+    cacheVersion(): number {
+      return db.prepare<[], { version: number }>('SELECT total_changes() AS version').get()!.version;
+    },
     upsert(item: WorkItem) {
       writeItem(item);
     },
@@ -849,7 +853,8 @@ export function createWorkItemStore(bb: BbPluginApi) {
         stateCount: states.length,
         excludeLocators: JSON.stringify(filters.excludeLocators ?? []),
         excludeLocatorCount: filters.excludeLocators?.length ?? 0,
-        limit: filters.limit
+        limit: filters.limit,
+        offset: filters.offset ?? 0
       };
       return db
         .prepare<Record<string, SqlParameter>, WorkItemRow>(
@@ -886,7 +891,7 @@ export function createWorkItemStore(bb: BbPluginApi) {
               item.locator NOT IN (SELECT value FROM json_each(:excludeLocators))
             )
           ORDER BY item.updated_at DESC, item.bb_project_id, item.source, item.locator
-          LIMIT :limit
+          LIMIT :limit OFFSET :offset
         `
         )
         .all(parameters)

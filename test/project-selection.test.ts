@@ -64,7 +64,7 @@ test('uses only the immediately previous navigation entry as source context', ()
       url: 'https://bb.test/projects/proj_alpha/threads/thread_one'
     },
     { index: 1, url: 'https://bb.test/settings' },
-    { index: 2, url: 'https://bb.test/plugins/taskboard/tasks/proj_beta' }
+    { index: 2, url: 'https://bb.test/plugins/taskboard-stages/tasks/proj_beta' }
   ];
 
   assert.equal(

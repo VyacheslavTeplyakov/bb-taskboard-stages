@@ -7,7 +7,7 @@ export function ticketThreadId(record: Pick<FactoryRecord, 'coordinator'> & { ru
 }
 
 export const TASKBOARD_OPEN_EVENT = 'taskboard:open-once';
-const OPEN_KEY = 'bb-taskboard:open-once';
+const OPEN_KEY = 'bb-taskboard-stages:open-once';
 export function requestTaskboardOpen(threadId: string) {
   try { sessionStorage.setItem(OPEN_KEY, threadId); } catch { return; }
   window.dispatchEvent(new Event(TASKBOARD_OPEN_EVENT));

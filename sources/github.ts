@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { z } from 'zod';
+import { stageLabelSchema, stageLabels, sameStageLabels } from '../github-stages.ts';
 import { CREATE_OUTCOME_UNCERTAIN_MARKER } from '../contract.js';
 import type {
   ExternalWorkItemCreateInput,
@@ -417,19 +418,20 @@ export function createGithubAdapter(options: {
         repositories.flatMap(repo =>
           [
             { state: 'open', limit: 100 },
-            { state: 'closed', limit: 50 }
+            { state: 'closed', limit: 100 }
           ].map(async query => ({
             repo,
-            issues: githubIssueListSchema.parse(
+            issues: z.array(githubIssueListSchema).parse(
               parseJson(
                 await runGithubCli(
                   githubArgs(
+                    '--paginate', '--slurp',
                     `repos/${repo}/issues?state=${query.state}&sort=updated&direction=desc&per_page=${query.limit}`
                   ),
                   GITHUB_TIMEOUT_MS
                 )
               )
-            )
+            ).flat()
           }))
         )
       );
@@ -602,6 +604,70 @@ export function createGithubAdapter(options: {
           id: confirmedId
         }
       };
+    },
+    async stageLabelSetup(labels, createMissing) {
+      assertConfigured();
+      const names = labels.map(label => stageLabelSchema.parse(label));
+      await assertGithubReady(runGithubCli);
+      const result: Array<{ repository: string; label: string; exists: boolean }> = [];
+      for (const repository of repositories) {
+        for (const label of names) {
+          let exists = false;
+          try {
+            const data = githubLabelSchema.parse(parseJson(await runGithubCli(
+              githubArgs(`repos/${repository}/labels/${encodeURIComponent(label)}`), GITHUB_TIMEOUT_MS)));
+            exists = data.name.toLowerCase() === label;
+          } catch (error) {
+            if (!/\b404\b/u.test(error instanceof Error ? error.message : String(error))) throw error;
+          }
+          if (!exists && createMissing) {
+            const data = githubLabelSchema.parse(parseJson(await runGithubCli(githubArgs(
+              '--method', 'POST', `repos/${repository}/labels`, '--field', `name=${label}`,
+              '--field', 'color=64748b'), GITHUB_TIMEOUT_MS)));
+            if (data.name.toLowerCase() !== label) throw new Error('GitHub returned an unexpected label');
+            exists = true;
+          }
+          result.push({ repository, label, exists });
+        }
+      }
+      return result;
+    },
+    async updateStage(locator, rawLabel, expectedLabels) {
+      assertConfigured();
+      const label = stageLabelSchema.parse(rawLabel);
+      const parsed = parseLocator(locator);
+      const repo = scopedRepository(parsed.repo);
+      await assertGithubReady(runGithubCli);
+      const initial = await loadIssue(repo, parsed.number);
+      const before = stageLabels(issueLabels(initial));
+      if (!sameStageLabels(before, expectedLabels)) {
+        throw new Error('Stage conflict: the issue changed. Refresh before moving it.');
+      }
+      if (before.length === 1 && before[0]!.toLowerCase() === label) {
+        return toItem(repo, initial);
+      }
+      // A move never creates repository labels implicitly.
+      const existing = githubLabelSchema.parse(parseJson(await runGithubCli(
+        githubArgs(`repos/${repo}/labels/${encodeURIComponent(label)}`), GITHUB_TIMEOUT_MS)));
+      if (existing.name.toLowerCase() !== label) throw new Error('Target stage label is unavailable');
+      try {
+        if (!before.some(value => value.toLowerCase() === label)) {
+          await runGithubCli(githubArgs('--method', 'POST',
+            `repos/${repo}/issues/${parsed.number}/labels`, '--field', `labels[]=${label}`), GITHUB_TIMEOUT_MS);
+        }
+        for (const previous of before.filter(value => value.toLowerCase() !== label)) {
+          await runGithubCli(githubArgs('--method', 'DELETE',
+            `repos/${repo}/issues/${parsed.number}/labels/${encodeURIComponent(previous)}`), GITHUB_TIMEOUT_MS);
+        }
+        const updated = await loadIssue(repo, parsed.number);
+        if (!sameStageLabels(stageLabels(issueLabels(updated)), [label])) {
+          throw new Error('Concurrent stage conflict; refresh to inspect the actual labels');
+        }
+        return toItem(repo, updated);
+      } catch (error) {
+        throw new Error(`Stage update may be partial or uncertain. Refresh before retrying. ${
+          error instanceof Error ? error.message : String(error)}`);
+      }
     },
     async updateStatus(locator, statusId) {
       assertConfigured();

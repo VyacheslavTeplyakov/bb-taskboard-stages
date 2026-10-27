@@ -6,7 +6,7 @@ const metadataFiles = ['dist/server.meta.json', 'dist/app.meta.json'];
 
 for (const path of metadataFiles) {
   const metadata = JSON.parse(await readFile(path, 'utf8'));
-  assert.equal(metadata.pluginId, 'taskboard', `${path} has the wrong plugin id`);
+  assert.equal(metadata.pluginId, 'taskboard-stages', `${path} has the wrong plugin id`);
   assert.equal(
     metadata.pluginVersion,
     manifest.version,

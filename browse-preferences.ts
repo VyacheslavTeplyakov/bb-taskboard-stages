@@ -10,9 +10,9 @@ export const CREATE_ASSIGNEE_DEFAULT_VERSION = 1 as const;
 export const ACROSS_PROJECTS_SCOPE = 'across-projects' as const;
 export const MAX_BROWSE_QUERY_LENGTH = 500;
 
-const BROWSE_STORAGE_PREFIX = 'bb-taskboard:browse-preferences:';
+const BROWSE_STORAGE_PREFIX = 'bb-taskboard-stages:browse-preferences:';
 const CREATE_ASSIGNEE_STORAGE_PREFIX =
-  'bb-taskboard:create-assignee-default:';
+  'bb-taskboard-stages:create-assignee-default:';
 const ALL_SOURCES = 'all' as const;
 const MAX_FILTER_VALUES = 100;
 const MAX_COLLAPSE_OVERRIDES = 100;

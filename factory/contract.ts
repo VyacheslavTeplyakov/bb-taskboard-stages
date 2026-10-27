@@ -5,10 +5,8 @@ export const factoryExecutionSchema = z.object({
   providerId: z.string().min(1).max(200),
   model: z.string().min(1).max(500),
   permissionMode: z.enum(['full', 'auto', 'accept-edits']),
-  reasoningLevel: z.enum([
-    'none', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra', 'ultracode'
-  ]),
-  serviceTier: z.enum(['default', 'fast'])
+  reasoningLevel: z.string().min(1).max(100),
+  serviceTier: z.string().min(1).max(100)
 }).strict();
 export type FactoryExecution = z.infer<typeof factoryExecutionSchema>;
 
@@ -120,7 +118,7 @@ export const factoryCoordinatorSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('failed'), ...coordinatorIntent, error: z.string() }).strict(),
   z.object({
     status: z.literal('ready'), ...coordinatorIntent, threadId: z.string().min(1),
-    nativeStatus: z.enum(['active', 'error', 'idle', 'starting', 'stopping']).default('starting'),
+    nativeStatus: z.enum(['active', 'error', 'idle', 'pending', 'starting', 'stopping']).default('starting'),
     error: z.string().nullable().default(null)
   }).strict()
 ]);

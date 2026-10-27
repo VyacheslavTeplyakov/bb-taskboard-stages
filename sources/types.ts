@@ -70,6 +70,8 @@ export function withoutComments(
 }
 
 export interface WorkSourceAdapter {
+  updateStage?(locator: string, label: string, expectedLabels: readonly string[]): Promise<ExternalWorkItemDetail>;
+  stageLabelSetup?(labels: readonly string[], createMissing: boolean): Promise<Array<{ repository: string; label: string; exists: boolean }>>;
   uploadImage?(image: { name: string; bytes: Uint8Array; mimeType: string }): Promise<string>;
   readonly source: WorkSource;
   configured(): boolean;

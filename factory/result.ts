@@ -15,9 +15,9 @@ export const resultHeaderSchema = z.discriminatedUnion('kind', [
 export type ResultHeader = z.infer<typeof resultHeaderSchema>;
 
 export function readResultMessage(output: string) {
-  if (!output.includes('::taskboard-result')) return null;
-  const match = /^::taskboard-result\{kind="(build|review)" verdict="([a-z_]+)"(?: revision="([\w./:@+-]{1,500})")?\}\r?\n([\s\S]*)$/.exec(output.trim());
-  if (!match || match[4].includes('::taskboard-result') ||
+  if (!output.includes('::stageboard-result')) return null;
+  const match = /^::stageboard-result\{kind="(build|review)" verdict="([a-z_]+)"(?: revision="([\w./:@+-]{1,500})")?\}\r?\n([\s\S]*)$/.exec(output.trim());
+  if (!match || match[4].includes('::stageboard-result') ||
     /<taskboard-(?:build|review)>/.test(match[4])) return { valid: false as const };
   const parsed = resultHeaderSchema.safeParse({
     kind: match[1], verdict: match[2], ...(match[3] ? { revision: match[3] } : {})

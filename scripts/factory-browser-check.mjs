@@ -113,7 +113,7 @@ try {
           ...record.runs[0], id: 'build-paused', kind: 'build', status: 'finished',
           threadId: 'thr_build', environmentId: 'env_build', planDigest: 'approved',
           activity: 'Build needs input', checks: [], changedFiles: [],
-          output: '::taskboard-result{kind="build" verdict="needs_input"}\nChoose the media retention policy before implementation.',
+          output: '::stageboard-result{kind="build" verdict="needs_input"}\nChoose the media retention policy before implementation.',
           buildResult: { verdict: 'needs_input', summary: 'Choose the media retention policy before implementation.', revision: null }
         }];
         window.factoryRefresh();
@@ -377,7 +377,7 @@ try {
     providerId: 'codex', model: 'gpt-5', permissionMode: 'auto',
     reasoningLevel: 'medium', serviceTier: 'default'
   });
-  assert.equal(await page.evaluate(() => localStorage.getItem('bb-taskboard:right-panel-pinned')), null);
+  assert.equal(await page.evaluate(() => localStorage.getItem('bb-taskboard-stages:right-panel-pinned')), null);
   assert.deepEqual(await page.evaluate(() => window.factoryNavigation), ['thr_investigate', 'thr_build', 'thr_coordinator']);
   await manual.getByRole('tab', { name: 'Activity', exact: true }).click();
   await manual.locator('.tb-run[data-live="true"] .tb-live-mark').waitFor();
@@ -551,7 +551,7 @@ try {
       await page.setViewportSize({ width, height: 900 });
       await manual.locator('.tb-error-notice summary').click();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-      await page.screenshot({ path: resolve(process.env.BB_THREAD_STORAGE, `taskboard-result-errors-${dark ? 'dark' : 'light'}-${width}.png`), fullPage: true });
+      await page.screenshot({ path: resolve(process.env.BB_THREAD_STORAGE, `stageboard-result-errors-${dark ? 'dark' : 'light'}-${width}.png`), fullPage: true });
       await manual.locator('.tb-error-notice summary').click();
     }
   }

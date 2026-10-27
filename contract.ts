@@ -2,6 +2,7 @@ import type { PluginRpcContract } from '@get-bb/plugin-sdk';
 import { factoryRpcMethods } from './factory/contract.js';
 import { improvementRpcMethods } from './ticket-improvement.js';
 import { z } from 'zod';
+import { stageProfileSchema, stageInfoSchema, stageLabelSchema } from './github-stages.ts';
 import { ticketImageSchema } from './ticket-images.js';
 import {
   bbProjectIdSchema,
@@ -405,7 +406,46 @@ const listInputSchema = z
   })
   .strict();
 
+const stageIssueInputSchema = z.object({
+  projectId: bbProjectIdSchema,
+  locator: z.string().min(1)
+}).strict();
+export const stageRpcContract = {
+  getStageProfile: {
+    input: z.object({ projectId: bbProjectIdSchema }).strict(),
+    output: z.object({ profile: stageProfileSchema }).strict()
+  },
+  saveStageProfile: {
+    input: stageProfileSchema,
+    output: z.object({ profile: stageProfileSchema }).strict()
+  },
+  listStageItems: {
+    input: z.object({ projectId: bbProjectIdSchema, offset: z.number().int().nonnegative().default(0),
+      limit: z.number().int().min(1).max(500).default(200), expectedRevision: z.string().optional() }).strict(),
+    output: z.object({ profile: stageProfileSchema,
+      items: z.array(z.object({ item: workItemSchema, stage: stageInfoSchema }).strict()),
+      nextOffset: z.number().int().nonnegative().nullable(), revision: z.string(),
+      lastSyncedAt: z.string().nullable(), error: z.string().nullable() }).strict()
+  },
+  stageOptions: {
+    input: stageIssueInputSchema,
+    output: z.object({ profile: stageProfileSchema, item: workItemSchema, stage: stageInfoSchema }).strict()
+  },
+  updateItemStage: {
+    input: stageIssueInputSchema.extend({ label: stageLabelSchema,
+      expectedStageLabels: z.array(z.string()).max(100), profileRevision: z.number().int().nonnegative() }).strict(),
+    output: z.object({ item: workItemSchema, stage: stageInfoSchema }).strict()
+  },
+  stageLabelSetup: {
+    input: z.object({ projectId: bbProjectIdSchema, profileRevision: z.number().int().nonnegative(),
+      createMissing: z.boolean().default(false) }).strict(),
+    output: z.object({ labels: z.array(z.object({ repository: z.string(), label: z.string(), exists: z.boolean() }).strict()) }).strict()
+  }
+} as const satisfies PluginRpcContract;
+export type StageRpcContract = typeof stageRpcContract;
+
 export const taskboardRpcContract = {
+  ...stageRpcContract,
   ...factoryRpcMethods,
   ...improvementRpcMethods,
   listProjects: {
@@ -539,7 +579,7 @@ export const taskboardRpcContract = {
         assigneeConfirmation: assigneeConfirmationSchema,
         mention: z
           .object({
-            provider: z.literal('external-work-item'),
+            provider: z.literal('stageboard-work-item'),
             id: z.string().min(1),
             label: z.string().min(1)
           })

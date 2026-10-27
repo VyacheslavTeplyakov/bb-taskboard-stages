@@ -17,7 +17,7 @@ registerHooks({
 const { default: plugin } = await import('../server.ts');
 
 test('registers independent default-on thread header visibility settings', async t => {
-  const fake = createFakePluginHost({ pluginId: 'taskboard' });
+  const fake = createFakePluginHost({ pluginId: 'taskboard-stages' });
   t.after(() => fake.harness.lifecycle.dispose());
 
   await plugin(fake.bb);

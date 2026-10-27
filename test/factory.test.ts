@@ -28,26 +28,26 @@ test('readable reports retain surrounding legacy details and malformed evidence'
     '## Checks\n680 tests passed.\nMissing backfill.\nNo deployment.');
   assert.equal(readableResultOutput('<taskboard-review>invalid</taskboard-review>'),
     '<taskboard-review>invalid</taskboard-review>');
-  assert.equal(readableResultOutput('::taskboard-result{kind="review" verdict="blocked"}\n## Blockers\nMissing backfill.'),
+  assert.equal(readableResultOutput('::stageboard-result{kind="review" verdict="blocked"}\n## Blockers\nMissing backfill.'),
     '## Blockers\nMissing backfill.');
 });
 test('result directives preserve Markdown and require explicit implementation evidence', () => {
-  assert.deepEqual(readReviewResult('::taskboard-result{kind="review" verdict="blocked"}\n\n## Blockers\n- Missing backfill.'),
+  assert.deepEqual(readReviewResult('::stageboard-result{kind="review" verdict="blocked"}\n\n## Blockers\n- Missing backfill.'),
     { verdict: 'blocked', findings: '## Blockers\n- Missing backfill.' });
-  assert.deepEqual(readBuildResult('::taskboard-result{kind="build" verdict="implemented" revision="abc123"}\n\nTests passed.'),
+  assert.deepEqual(readBuildResult('::stageboard-result{kind="build" verdict="implemented" revision="abc123"}\n\nTests passed.'),
     { verdict: 'implemented', summary: 'Tests passed.', revision: 'abc123' });
-  assert.deepEqual(readBuildResult('::taskboard-result{kind="build" verdict="needs_input"}\nChoose retention policy.'),
+  assert.deepEqual(readBuildResult('::stageboard-result{kind="build" verdict="needs_input"}\nChoose retention policy.'),
     { verdict: 'needs_input', summary: 'Choose retention policy.', revision: null });
-  assert.deepEqual(readReviewResult('::taskboard-result{kind="review" verdict="passed"}\nVerified the plan.'),
+  assert.deepEqual(readReviewResult('::stageboard-result{kind="review" verdict="passed"}\nVerified the plan.'),
     { verdict: 'passed', findings: 'Verified the plan.' });
   for (const output of [
-    '::taskboard-result{kind="build" verdict="implemented"}\nDone',
-    '::taskboard-result{kind="review" verdict="blocked"}\n',
-    '::taskboard-result{kind="review" verdict="passed" extra="yes"}\nDone',
-    '```text\n::taskboard-result{kind="review" verdict="passed"}\n```\nDone',
-    '::taskboard-result{kind="review" verdict="passed"}\n::taskboard-result{kind="review" verdict="blocked"}\nMissing',
-    '::taskboard-result{kind="review" verdict="passed"}\n<taskboard-review>{"verdict":"blocked","findings":"Missing"}</taskboard-review>',
-    '::taskboard-result{kind="review" verdict="passed" revision="abc"}\nDone'
+    '::stageboard-result{kind="build" verdict="implemented"}\nDone',
+    '::stageboard-result{kind="review" verdict="blocked"}\n',
+    '::stageboard-result{kind="review" verdict="passed" extra="yes"}\nDone',
+    '```text\n::stageboard-result{kind="review" verdict="passed"}\n```\nDone',
+    '::stageboard-result{kind="review" verdict="passed"}\n::stageboard-result{kind="review" verdict="blocked"}\nMissing',
+    '::stageboard-result{kind="review" verdict="passed"}\n<taskboard-review>{"verdict":"blocked","findings":"Missing"}</taskboard-review>',
+    '::stageboard-result{kind="review" verdict="passed" revision="abc"}\nDone'
   ]) {
     assert.equal(readBuildResult(output).verdict, 'unknown');
     assert.equal(readReviewResult(output).verdict, 'unknown');
@@ -487,7 +487,7 @@ test('concurrent starts create one coordinator and parent every new stage withou
     f.complete('Approved implementation plan');
     await f.service.get(item);
     const build = f.store.all()[0].runs.at(-1)!;
-    f.complete('::taskboard-result{kind="build" verdict="implemented" revision="abc123"}\nVerified implementation.');
+    f.complete('::stageboard-result{kind="build" verdict="implemented" revision="abc123"}\nVerified implementation.');
     const review = await f.service.get(item);
     assert.deepEqual(f.spawnInputs.filter(input => input.parentThreadId).map(input => input.parentThreadId),
       [root, root, root, root]);
@@ -915,7 +915,7 @@ test('running and accepted-review observations do not re-read the provider or mu
     const record = f.store.all()[0];
     Object.assign(record.runs[0], {
       kind: 'review', status: 'finished',
-      output: '::taskboard-result{kind="review" verdict="passed"}\nVerified revision abc123',
+      output: '::stageboard-result{kind="review" verdict="passed"}\nVerified revision abc123',
       reviewResult: { verdict: 'passed', findings: 'Verified revision abc123' }
     });
     f.store.save(record);
@@ -1075,20 +1075,20 @@ test('automatic repairs honor a pause during preflight while explicit continuati
       const build = startRun(record, 'build', false);
       Object.assign(build, {
         status: 'finished', threadId: 'thr_native', environmentId: 'env_test',
-        output: '::taskboard-result{kind="build" verdict="implemented" revision="abc123"}\nImplemented.',
+        output: '::stageboard-result{kind="build" verdict="implemented" revision="abc123"}\nImplemented.',
         buildResult: { verdict: 'implemented', summary: 'Implemented.', revision: 'abc123' }
       });
       if (kind === 'review') {
         const review = startRun(record, 'review', false);
         Object.assign(review, {
           status: 'finished', threadId: 'thr_review_seed', environmentId: 'env_test',
-          output: '::taskboard-result{kind="review" verdict="blocked"}\nFix the review finding.',
+          output: '::stageboard-result{kind="review" verdict="blocked"}\nFix the review finding.',
           reviewResult: { verdict: 'blocked', findings: 'Fix the review finding.' }
         });
       }
       record.admission = { kind: 'factory', claimedAt: new Date().toISOString() };
       if (kind === 'build') {
-        record.runs[0].output = '::taskboard-result{kind="build" verdict="blocked"}\nFinish verification.';
+        record.runs[0].output = '::stageboard-result{kind="build" verdict="blocked"}\nFinish verification.';
         record.runs[0].buildResult = readBuildResult(record.runs[0].output);
       }
       f.store.save(record);
@@ -1507,7 +1507,7 @@ test('Start task hands four stages to fresh sessions and preserves the exact app
     assert.equal(buildInput.originKind, undefined);
     assert.equal(buildInput.sourceThreadId, undefined);
     assert.match(buildInput.prompt, /Implement current scope and run npm test/);
-    f.complete('::taskboard-result{kind="build" verdict="implemented" revision="abc123"}\nImplemented and tested');
+    f.complete('::stageboard-result{kind="build" verdict="implemented" revision="abc123"}\nImplemented and tested');
     record = await f.service.get(item);
     assert.equal(record.stage, 'Review');
     assert.equal(record.runs.at(-1)?.kind, 'review');
@@ -1806,7 +1806,7 @@ test('review outcomes require a valid result; legacy negative verdicts are recov
 test('opening a ticket does not write provider status; the background poll does', async () => {
   const f = fixture();
   try {
-    seedReview(f, '::taskboard-result{kind="review" verdict="passed"}\nVerified implementation');
+    seedReview(f, '::stageboard-result{kind="review" verdict="passed"}\nVerified implementation');
     await f.service.get(item);
     assert.equal(f.progressWrites(), 0);
     assert.equal(f.store.all()[0].trackerProgress.target, undefined);
@@ -1852,7 +1852,7 @@ test('repair completion starts independent review of the repaired Build workspac
     seedReview(f);
     let record = await f.service.get(item);
     const buildThread = record.runs.at(-1)!.threadId;
-    f.complete('::taskboard-result{kind="build" verdict="implemented" revision="def456"}\nChanged panel.ts; npm test passed. Revision def456, workspace /work/panel.');
+    f.complete('::stageboard-result{kind="build" verdict="implemented" revision="def456"}\nChanged panel.ts; npm test passed. Revision def456, workspace /work/panel.');
     record = await f.service.get(item);
     assert.equal(record.stage, 'Review');
     assert.notEqual(record.runs.at(-1)!.threadId, buildThread);
@@ -1860,8 +1860,8 @@ test('repair completion starts independent review of the repaired Build workspac
     assert.deepEqual(input.environment, { type: 'reuse', environmentId: 'env_test' });
     assert.match(input.prompt, /Revision def456/);
     assert.match(input.prompt, /Authoring session: thr_native/);
-    assert.match(input.prompt, /::taskboard-result\{kind="review"/);
-    f.complete('::taskboard-result{kind="review" verdict="passed"}\nVerified def456 and required checks');
+    assert.match(input.prompt, /::stageboard-result\{kind="review"/);
+    f.complete('::stageboard-result{kind="review" verdict="passed"}\nVerified def456 and required checks');
     record = await f.service.get(item);
     assert.equal(record.runs.at(-1)?.reviewResult?.verdict, 'passed');
     assert.equal(record.stage, 'Review');
@@ -1921,7 +1921,7 @@ function seedArchivedTransition(f: ReturnType<typeof fixture>, kind: 'investigat
   Object.assign(run, {
     status: 'finished', threadId: priorBuild ? 'thr_plan' : 'thr_native', environmentId: 'env_test',
     output: kind === 'build'
-      ? '::taskboard-result{kind="build" verdict="implemented" revision="abc123"}\nVerified implementation.'
+      ? '::stageboard-result{kind="build" verdict="implemented" revision="abc123"}\nVerified implementation.'
       : 'Current findings and implementation plan'
   });
   f.archived.add('thr_native');
@@ -2258,7 +2258,7 @@ test('retrying a rejected Build dispatch reuses the existing implementation work
     const implementation = startRun(record, 'build', false);
     Object.assign(implementation, {
       status: 'finished', threadId: 'thr_native', environmentId: 'env_test',
-      output: '::taskboard-result{kind="build" verdict="blocked"}\nFinish verification.',
+      output: '::stageboard-result{kind="build" verdict="blocked"}\nFinish verification.',
       buildResult: { verdict: 'blocked', summary: 'Finish verification.', revision: null }
     });
     const rejected = startRun(record, 'build', false);
@@ -2553,16 +2553,16 @@ test('actionable blocked Builds continue automatically twice and manual continua
     blocked.status = 'finished';
     blocked.threadId = 'thr_native';
     blocked.environmentId = 'env_test';
-    blocked.output = '::taskboard-result{kind="build" verdict="blocked"}\nFinish the remaining validation.';
+    blocked.output = '::stageboard-result{kind="build" verdict="blocked"}\nFinish the remaining validation.';
     blocked.buildResult = readBuildResult(blocked.output);
     f.store.save(record);
 
     let current = await f.service.get(item);
     assert.equal(current.runs.at(-1)?.continuationOf, blocked.id);
-    f.complete('::taskboard-result{kind="build" verdict="blocked"}\nThe validation is still actionable.');
+    f.complete('::stageboard-result{kind="build" verdict="blocked"}\nThe validation is still actionable.');
     current = await f.service.get(item);
     assert.equal(current.runs.filter(run => run.continuationOf).length, 2);
-    f.complete('::taskboard-result{kind="build" verdict="blocked"}\nOne actionable step remains.');
+    f.complete('::stageboard-result{kind="build" verdict="blocked"}\nOne actionable step remains.');
     current = await f.service.get(item);
     assert.match(current.automationError ?? '', /continuation limit reached \(2 attempts\)/);
     assert.equal(f.sends(), 2);
@@ -2654,7 +2654,7 @@ test('a ticket edit that answers a paused Build resumes that Build instead of re
     const build = startRun(record, 'build', false);
     Object.assign(build, {
       status: 'finished', threadId: 'thr_build', environmentId: 'env_build',
-      output: '::taskboard-result{kind="build" verdict="needs_input"}\nChoose the inventory target.',
+      output: '::stageboard-result{kind="build" verdict="needs_input"}\nChoose the inventory target.',
       buildResult: { verdict: 'needs_input', summary: 'Choose the inventory target.', revision: null }
     });
     record.automatic = true;
@@ -2714,7 +2714,7 @@ test('Start task investigates changed ticket scope instead of resuming obsolete 
     const blocked = startRun(record, 'build', false);
     Object.assign(blocked, {
       status: 'finished', threadId: 'thr_native', environmentId: 'env_test',
-      output: '::taskboard-result{kind="build" verdict="blocked"}\nFinish the original scope.',
+      output: '::stageboard-result{kind="build" verdict="blocked"}\nFinish the original scope.',
       buildResult: { verdict: 'blocked', summary: 'Finish the original scope.', revision: null }
     });
     f.store.save(record);
@@ -2742,7 +2742,7 @@ test('Start task requires approval before replacing obsolete Build or Review fin
         const blocked = startRun(record, 'build', false);
         Object.assign(blocked, {
           status: 'finished', threadId: 'thr_native', environmentId: 'env_test',
-          output: '::taskboard-result{kind="build" verdict="blocked"}\nFinish the original plan.',
+          output: '::stageboard-result{kind="build" verdict="blocked"}\nFinish the original plan.',
           buildResult: { verdict: 'blocked', summary: 'Finish the original plan.', revision: null }
         });
       }
@@ -2772,7 +2772,7 @@ test('approved plan changes start a fresh Build without obsolete continuation or
         const blocked = startRun(record, 'build', false);
         Object.assign(blocked, {
           status: 'finished', threadId: 'thr_native', environmentId: 'env_test',
-          output: '::taskboard-result{kind="build" verdict="blocked"}\nFinish the original plan.',
+          output: '::stageboard-result{kind="build" verdict="blocked"}\nFinish the original plan.',
           buildResult: { verdict: 'blocked', summary: 'Finish the original plan.', revision: null }
         });
       }
@@ -2863,7 +2863,7 @@ test('changed scope never bypasses active, uncertain, or closed task guards', as
     const blocked = startRun(record, 'build', false);
     Object.assign(blocked, {
       status: 'finished', threadId: 'thr_native', environmentId: 'env_test',
-      output: '::taskboard-result{kind="build" verdict="blocked"}\nFinish the original plan.',
+      output: '::stageboard-result{kind="build" verdict="blocked"}\nFinish the original plan.',
       buildResult: { verdict: 'blocked', summary: 'Finish the original plan.', revision: null }
     });
     f.store.save(record);

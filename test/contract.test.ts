@@ -351,7 +351,7 @@ test('validates creation metadata and warning-bearing RPC results', () => {
     warnings: ['GitHub created the issue without bug.'],
     assigneeConfirmation: { confirmed: true as const, id: null },
     mention: {
-      provider: 'external-work-item' as const,
+      provider: 'stageboard-work-item' as const,
       id: 'proj_taskboard:linear:TASK-42',
       label: 'TASK-42'
     }

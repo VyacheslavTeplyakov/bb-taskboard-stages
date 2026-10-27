@@ -19,7 +19,7 @@ const item = {
 test('builds and round-trips the bounded live Taskboard mention', () => {
   const mention = taskboardComposerMention(item);
   assert.deepEqual(mention, {
-    provider: 'external-work-item',
+    provider: 'stageboard-work-item',
     id: 'proj_123:github:octo/repo#42',
     label: 'GH-42'
   });
@@ -54,11 +54,11 @@ test('rejects malformed, oversized, unsafe, and expanded drag payloads', () => {
     'x'.repeat(2_049),
     JSON.stringify(null),
     JSON.stringify({ provider: 'other', id: 'proj_1:github:1', label: 'GH-1' }),
-    JSON.stringify({ provider: 'external-work-item', id: 'bad', label: 'GH-1' }),
-    JSON.stringify({ provider: 'external-work-item', id: 'proj_1:github:1', label: '' }),
-    JSON.stringify({ provider: 'external-work-item', id: 'proj_1:github:1', label: 'bad\u202e' }),
+    JSON.stringify({ provider: 'stageboard-work-item', id: 'bad', label: 'GH-1' }),
+    JSON.stringify({ provider: 'stageboard-work-item', id: 'proj_1:github:1', label: '' }),
+    JSON.stringify({ provider: 'stageboard-work-item', id: 'proj_1:github:1', label: 'bad\u202e' }),
     JSON.stringify({
-      provider: 'external-work-item',
+      provider: 'stageboard-work-item',
       id: 'proj_1:github:1',
       label: 'GH-1',
       title: 'must not travel'

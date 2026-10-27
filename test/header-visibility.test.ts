@@ -27,7 +27,7 @@ test('header controls can be hidden independently and restored', async t => {
     await rm(directory, { recursive: true, force: true });
   });
   await build({
-    entryPoints: [new URL('../app.tsx', import.meta.url).pathname],
+    entryPoints: [fileURLToPath(new URL('../app.tsx', import.meta.url))],
     outfile: `${directory}/app.mjs`,
     bundle: true,
     packages: 'external',
@@ -63,7 +63,7 @@ test('header controls can be hidden independently and restored', async t => {
     if (showProgress) await progressSlot.findByRole('button', { name: 'Task progress: Build, In progress' });
     assert.equal(progressSlot.container.querySelectorAll('button').length, showProgress ? 1 : 0);
     assert.equal(pinSlot.container.querySelectorAll('button').length, showPin ? 1 : 0);
-    progressSlot.unmount();
-    pinSlot.unmount();
+    progressSlot.lifecycle.unmount();
+    pinSlot.lifecycle.unmount();
   }
 });

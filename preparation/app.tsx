@@ -4,11 +4,10 @@ import {
   useBbContext,
   useBbNavigate,
   useComposer,
-  useComposerView,
   useRpc,
   type PluginAppBuilder,
   type PluginNewThreadPanelProps,
-  type PluginThreadPanelProps,
+  type ExperimentalThreadActionTabProps,
   type PluginThreadHeaderActionProps
 } from '@get-bb/plugin-sdk/app';
 import { preparationRpc, sandboxHtml, type Preparation } from './contract.js';
@@ -92,7 +91,7 @@ function ArmPreparation({
 }) {
   const rpc = useRpc<typeof preparationRpc>();
   const composer = useComposer();
-  const view = useComposerView();
+  const view = useComposer();
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const projectId =
@@ -105,8 +104,8 @@ function ArmPreparation({
         projectId,
         request: composer.text.trim()
       });
-      composer.insertMention({
-        provider: 'preparation',
+      composer.insert({
+        provider: 'stageboard-preparation',
         id: p.id,
         label: 'Prepare work'
       });
@@ -126,7 +125,7 @@ function ArmPreparation({
         type="button"
         size="sm"
         variant="outline"
-        disabled={busy || !projectId || view.draft.isEmpty}
+        disabled={busy || !projectId || view.isEmpty}
         onClick={() => void arm()}
       >
         {busy ? 'Attaching…' : 'Prepare work'}
@@ -247,7 +246,7 @@ function PrepareNewBody({ projectId }: PluginNewThreadPanelProps) {
     </div>
   );
 }
-function PrepareThread({ threadId }: PluginThreadPanelProps) {
+function PrepareThread({ threadId }: ExperimentalThreadActionTabProps) {
   const rpc = useRpc<typeof preparationRpc>();
   const [p, setP] = useState<Preparation | null>(null);
   const [error, setError] = useState('');
@@ -269,7 +268,7 @@ function PrepareThread({ threadId }: PluginThreadPanelProps) {
       clearInterval(t);
     };
   }, [threadId, rpc]);
-  return p?.threadId === threadId ? (
+  return p && p.threadId === threadId ? (
     <PreparationWorkspace
       key={`${p.projectId}:${p.id}`}
       id={p.id}
@@ -1068,7 +1067,9 @@ export function registerPreparationApp(app: PluginAppBuilder) {
     component: PrepareNew,
     layout: 'flush'
   });
-  app.slots.threadPanelAction({
+  app.slots.experimental_tab({
+    context: { kind: 'thread' },
+    availability: 'action',
     id: actionId,
     title: 'Prepare work',
     icon: 'Target',

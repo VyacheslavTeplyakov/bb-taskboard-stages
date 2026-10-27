@@ -320,18 +320,18 @@ export function registerPreparation(
   };
   bb.rpc.register(preparationRpc, handlers);
   bb.ui.registerMentionProvider({
-    id: 'preparation',
+    id: 'stageboard-preparation',
     label: 'Prepare work',
     search: () => [],
     resolve(prepId) {
       const p = store.get(prepId);
       return {
-        context: `The user selected Taskboard Prepare work for this request. This is preparation only. Do not implement, edit, execute repository code, or start Empirical. Before doing anything else call the taskboard_prepare_start tool with preparationId ${JSON.stringify(p.id)}. That tool binds the actual BB settings and schedules repository investigation and prototype jobs in separate preparation storage. After the tool returns, tell the user to use the Prepare work panel and end your turn. Do not use any other tools. Original user request is preserved by Taskboard.`
+        context: `The user selected Taskboard Prepare work for this request. This is preparation only. Do not implement, edit, execute repository code, or start Empirical. Before doing anything else call the stageboard_prepare_start tool with preparationId ${JSON.stringify(p.id)}. That tool binds the actual BB settings and schedules repository investigation and prototype jobs in separate preparation storage. After the tool returns, tell the user to use the Prepare work panel and end your turn. Do not use any other tools. Original user request is preserved by Taskboard.`
       };
     }
   });
   bb.agents.registerTool({
-    name: 'taskboard_prepare_start',
+    name: 'stageboard_prepare_start',
     description:
       'Start a Taskboard preparation attached to this thread. This schedules preparation only and never implements target repository changes.',
     parameters: z.object({ preparationId: id }),
