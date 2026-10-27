@@ -18,7 +18,7 @@ GitHub Projects и отдельный трекер не требуются.
 Для записи этапов нужны права на изменение меток issues.
 
 ```bash
-bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.1
+bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.3
 ```
 
 Для получения совместимых обновлений ветки 0.1 используйте `@^0.1.0`.

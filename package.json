@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-taskboard-stages",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "private": true,
   "description": "Project Kanban stages from GitHub labels, independent of issue state.",
   "type": "module",

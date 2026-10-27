@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 — 2026-10-27
+## 0.1.3 — 2026-10-27
 
 - Bundle `stageboard-setup` for first-time connection, reconfiguration and repair.
 - Document server-side access checks, revision-safe profile application, explicit

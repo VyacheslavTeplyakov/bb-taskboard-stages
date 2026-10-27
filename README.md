@@ -43,7 +43,7 @@ currently in Russian; column titles are configurable.
 Install directly from GitHub:
 
 ```bash
-bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.1
+bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.3
 ```
 
 To follow compatible 0.1 releases, use `@^0.1.0` instead. The plugin id is
