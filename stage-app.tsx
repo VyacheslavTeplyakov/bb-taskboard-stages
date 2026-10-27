@@ -192,6 +192,7 @@ export function GithubStageSettings({ projectId }: { projectId: string }) {
   return <section className="space-y-3 rounded-lg border bg-card p-4">
     <h3 className="font-semibold">Этапы GitHub-канбана</h3>
     <p className="text-sm text-muted-foreground">Колонки задаются метками stage:*. Состояние issue Open/Closed изменяется отдельно. Пустой профиль сохраняет стандартный канбан.</p>
+    {profile?.columns.length === 0 && <p className="text-sm text-muted-foreground">Для настройки с агентом напишите: «Настрой Taskboard Stages для этого проекта». Встроенный навык stageboard-setup поможет согласовать этапы и правила обновления доски.</p>}
     {(error || loadError) && <p role="alert" className="text-sm text-destructive">{error ?? loadError}</p>}
     {message && <p role="status" className="text-sm">{message}</p>}
     {!profile ? <p>Загружаем настройки…</p> : <>

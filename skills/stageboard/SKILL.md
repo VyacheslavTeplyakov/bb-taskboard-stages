@@ -1,13 +1,15 @@
 ---
 name: stageboard
-description: "Read and update a project's GitHub Kanban stages in Taskboard Stages. Use for stage:* labels, board progress, or Archivarius board maintenance."
+description: "Read or update an existing project's GitHub Kanban stages in Taskboard Stages. Use for card moves, stage:* labels and board progress. Use stageboard-setup for first-time project connection or workflow configuration."
 ---
 
 # Taskboard Stages
 
 The issue state Open/Closed and the Kanban stage are independent. Stage changes modify only `stage:*` labels. Ordinary labels, issue text, assignees and issue state are preserved.
 
-Use the project's agreed profile. Archivarius maintains the board; Project Control coordinates work. Reading the board and moving cards never starts agents or the pipeline.
+Use the project's agreed profile and recorded workflow, normally at `.bb/taskboard-stages.md`. Follow its maintainer, decision source and handoff rules; the same agent can coordinate work and maintain the board. Reading the board and moving cards never starts agents or the pipeline.
+
+For first-time connection, changing the workflow or preparing project instructions, use the `stageboard-setup` skill. If a routine move is blocked by missing setup, report that gap rather than inventing columns or bulk-assigning stages.
 
 ## Commands
 
@@ -34,4 +36,4 @@ After a conflict, partial write or uncertain result, read the issue again and re
 
 Open Taskboard Stages → Manage → Этапы GitHub-канбана. Configure each project's ordered columns. Export/import affects the profile only; saving or renaming columns never rewrites issues. An empty profile restores the original Taskboard view.
 
-This candidate has its own plugin data. It does not copy the original Taskboard's credentials or enable its optional autonomous factory.
+This fork has its own plugin data. It does not copy the original Taskboard's credentials or enable its optional autonomous factory.

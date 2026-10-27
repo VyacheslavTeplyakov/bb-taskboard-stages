@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-10-27
+
+- Bundle `stageboard-setup` for first-time connection, reconfiguration and repair.
+- Document server-side access checks, revision-safe profile application, explicit
+  label preparation and accurate setup readiness reporting.
+- Include a project-local workflow template and instruction-pointer procedure
+  for manual, single-agent and existing-role workflows.
+- Make normal `stageboard` maintenance follow project-specific responsibilities.
+- Add an empty-profile hint and English/Russian onboarding instructions.
+
 ## 0.1.0 — 2026-10-27
 
 First public release of Taskboard Stages, based on Taskboard 0.3.6 at

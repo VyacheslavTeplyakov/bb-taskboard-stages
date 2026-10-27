@@ -40,10 +40,10 @@ currently in Russian; column titles are configurable.
 
 ## Install
 
-Install the first release directly from GitHub:
+Install directly from GitHub:
 
 ```bash
-bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.0
+bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.1
 ```
 
 To follow compatible 0.1 releases, use `@^0.1.0` instead. The plugin id is
@@ -62,6 +62,14 @@ it does not automatically migrate the original plugin's settings or credentials.
 GitHub authentication continues to use the existing `gh` login.
 
 ## Set up a project
+
+Ask an agent in the target BB project: **“Set up Taskboard Stages for this
+project.”** The bundled `stageboard-setup` skill checks the connection, agrees
+on columns and responsibilities, applies configuration and records project
+instructions. It works with a human, one agent or your existing roles.
+See [project onboarding](docs/ONBOARDING.md) for the workflow and readiness checks.
+
+For manual setup:
 
 1. Open **Taskboard Stages** and select a BB project.
 2. In **Manage**, confirm GitHub as the tracker and check the mapped repository.
@@ -96,8 +104,8 @@ bb stageboard stages move 'owner/repo#42' stage:review --project <project-id> --
 continuation instructions in the skill to read the entire board consistently.
 `stages prepare` is the separate, explicit command for creating missing labels.
 
-The project coordinator decides when work reaches a stage; a service agent such
-as Archivarius maintains the board. The human UI and agents use the same stage
+The project's recorded workflow decides who maintains the board and what
+evidence permits each transition. The human UI and agents use the same stage
 operation. A stage write rechecks current labels, updates individual stage
 labels and verifies the result. On a conflict or an uncertain response, refresh
 before retrying. GitHub's separate label calls do not form one transaction.
