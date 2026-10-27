@@ -1,6 +1,0 @@
-{
-  "checkId": "qa-full-ci",
-  "commandId": "repo-full-ci",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6"],
-  "summary": "Run the repository CI contract at the exact reviewed Action Topbar revision before main integration."
-}

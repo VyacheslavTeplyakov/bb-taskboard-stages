@@ -1,6 +1,0 @@
-{
-  "commandId": "workspace-check",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7"],
-  "evidenceKinds": ["test"],
-  "summary": "Run the final root check after the repository-wide active Git-only cleanup and locally validated Git marketplace entries: documentation/CI/manifest distribution guards, Taskboard 0.3.1 tests and build metadata, Usage Tracker 0.1.2 tests and build, and preservation of required package tooling."
-}

@@ -1,6 +1,0 @@
-{
-  "checkId": "qa-integration",
-  "commandId": "action-topbar-distribution",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-UI-1", "AC-UI-2"],
-  "summary": "Validate product-owned wording, zero authored comparison-name matches, screenshot paths and dimensions, compatibility warning, install commands, and dry-run package contents."
-}

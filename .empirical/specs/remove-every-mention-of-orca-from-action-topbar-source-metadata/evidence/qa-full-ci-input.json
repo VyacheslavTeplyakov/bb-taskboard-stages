@@ -1,6 +1,0 @@
-{
-  "checkId": "qa-full-ci",
-  "commandId": "repo-full-ci",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-UI-1", "AC-UI-2"],
-  "summary": "Run the complete repository CI contract at the exact reviewed Action Topbar wording and screenshot revision before main integration."
-}

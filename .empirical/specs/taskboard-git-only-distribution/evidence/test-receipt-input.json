@@ -1,6 +1,0 @@
-{
-  "commandId": "workspace-check",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6"],
-  "evidenceKinds": ["test"],
-  "summary": "Run the repository-authorized root check after both externally unpublished plugins become Git-only: Taskboard 0.3.1 and Usage Tracker 0.1.2 private distribution guards, SDK contracts, TypeScript, 88 Taskboard tests, 13 Usage Tracker tests, and both production builds/metadata checks."
-}

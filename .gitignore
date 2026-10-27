@@ -1,5 +1,11 @@
-dist/
 node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
 .DS_Store
 *.log
-.npm-publish.env
+.scratch/
+test/.stage-ui-*/

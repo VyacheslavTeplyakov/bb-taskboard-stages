@@ -1,6 +1,0 @@
-{
-  "commandId": "workspace-check",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-8", "AC-9"],
-  "evidenceKinds": ["test"],
-  "summary": "Run the final root check for the authorship-preserving PR #10/#11/#12 integration: Usage Tracker compact-limit behavior, Taskboard current preference regressions, bounded named preset schema/SQLite/RPC/CLI/UI guards, Git-only manifests, contributor docs, builds, and metadata."
-}

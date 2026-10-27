@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1,
-  "packetDigest": "sha256:93d0702b0e05ce2ba4096499382a6dad222c46bc57de36cd952c8ed041c7de52",
-  "resultPath": ".empirical/specs/remove-every-mention-of-orca-from-action-topbar-source-metadata/reviews/4b79395befe716ddc6396e7e.json",
-  "resultDigest": "sha256:4b79395befe716ddc6396e7e8c0ee5cc3039fbe24a7b4d24616195e9aeea1b9c",
-  "receiptId": "collected-866c0f5b2ec90d86993d93bc"
-}

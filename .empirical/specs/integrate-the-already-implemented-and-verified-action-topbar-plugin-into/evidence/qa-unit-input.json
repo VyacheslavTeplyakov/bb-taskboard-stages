@@ -1,6 +1,0 @@
-{
-  "checkId": "qa-unit",
-  "commandId": "action-topbar-focused",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6"],
-  "summary": "Run all Action Topbar unit and contract regression tests, including malformed persisted state and drag-only interaction boundaries."
-}

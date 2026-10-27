@@ -1,6 +1,0 @@
-{
-  "checkId": "qa-adapter-contract",
-  "commandId": "action-topbar-contract",
-  "criteria": ["AC-1", "AC-2", "AC-3", "AC-4", "AC-5", "AC-6"],
-  "summary": "Typecheck the Action Topbar package against its pinned Plugin SDK declarations and internal contracts."
-}

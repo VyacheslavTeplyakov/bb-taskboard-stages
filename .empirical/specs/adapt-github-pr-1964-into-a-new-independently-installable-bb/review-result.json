@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1,
-  "packetDigest": "sha256:af11387f6004f8ac50a230488a727ec45660aac98d26451585f7e055db8c407f",
-  "resultPath": ".empirical/specs/adapt-github-pr-1964-into-a-new-independently-installable-bb/reviews/fdde89a0f309b5f66674ebce.json",
-  "resultDigest": "sha256:fdde89a0f309b5f66674ebcedabf2f1a17257d74ebf69700d4230525653f0022",
-  "receiptId": "collected-aaff0d2843821001dae71ed5"
-}
