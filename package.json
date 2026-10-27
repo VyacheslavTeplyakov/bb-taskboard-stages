@@ -6,14 +6,13 @@
   "type": "module",
   "license": "MIT",
   "author": "Mateo Cerquetella",
-  "homepage": "https://github.com/MateoCerquetella/bb-plugins/tree/main/plugins/taskboard#readme",
+  "homepage": "https://github.com/VyacheslavTeplyakov/bb-taskboard-stages#readme",
   "bugs": {
-    "url": "https://github.com/MateoCerquetella/bb-plugins/issues"
+    "url": "https://github.com/VyacheslavTeplyakov/bb-taskboard-stages/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MateoCerquetella/bb-plugins.git",
-    "directory": "plugins/taskboard"
+    "url": "git+https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git"
   },
   "keywords": [
     "bb",
@@ -29,7 +28,8 @@
   ],
   "engines": {
     "bb": ">=0.47.1",
-    "bbPluginSdk": ">=0.6.79"
+    "bbPluginSdk": ">=0.6.79",
+    "node": ">=22.19.0"
   },
   "bb": {
     "name": "Taskboard Stages",
@@ -91,5 +91,11 @@
     "test": "node --test --experimental-strip-types test/*.test.ts",
     "verify:build": "node scripts/verify-build.mjs",
     "check": "npm run types:check && npm run typecheck && npm test && npm run build && npm run verify:build"
-  }
+  },
+  "contributors": [
+    {
+      "name": "Vyacheslav Teplyakov",
+      "url": "https://github.com/VyacheslavTeplyakov"
+    }
+  ]
 }

@@ -1,33 +1,136 @@
 # Taskboard Stages
 
-Локальная доработка Taskboard 0.3.6: канбан проектов BB по меткам GitHub `stage:*`. Open/Closed остаётся самостоятельным состоянием issue. Рабочий Taskboard не заменяется.
+[Русская документация](README.ru.md) · [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md)
 
-## Использование
+Project Kanban boards inside **BB**, with columns driven by GitHub issue labels.
+Move an issue to a new stage without changing whether it is open or closed.
 
-Откройте Manage выбранного проекта и подключите GitHub штатным способом Taskboard. В «Этапы GitHub-канбана» задайте названия, метки и порядок колонок, затем сохраните профиль. «Пример этапов» заполняет редактируемый черновик. Сохранение профиля не изменяет GitHub.
+This is a fork of [Taskboard by Mateo Cerquetella](https://github.com/MateoCerquetella/bb-plugins),
+focused on a lightweight workflow for developers and their coding agents.
+Each BB project has its own ordered columns. GitHub Projects and a separate
+tracking service are not required.
 
-«Проверить метки» читает их наличие; отдельная кнопка создаёт отсутствующие метки. Создание меток не меняет issues. Пустой профиль оставляет стандартное представление Taskboard.
+![Taskboard Stages Kanban with synthetic demonstration tasks](docs/images/kanban.jpg)
 
-В режиме Kanban карточки группируются по меткам. Их можно переносить мышью или выбирать этап через меню. Карточка отдельно показывает Open/Closed. Состояние issue изменяется штатным элементом в подробностях задачи и не перемещает карточку.
+## What it does
 
-Issues без этапа попадают в «Без этапа»; неизвестные или конфликтующие метки — в «Требует настройки». Обычные метки сохраняются. Ошибки записи и давность синхронизации видны на доске.
+- A `stage:*` label determines the column; GitHub Open/Closed remains separate.
+- Keep a closed issue in Development or an open issue in Done when the workflow needs it.
+- Move cards with drag-and-drop, an accessible stage menu, or the agent CLI.
+- Use the full board page or the compact panel beside chat.
+- Configure, reorder, export and import columns separately for each project.
+- See issues without a stage and issues with conflicting or unknown stage labels.
+- Preserve ordinary labels and other issue fields when moving a card.
+- Read all issue pages and show synchronization errors and the last successful sync.
 
-Профиль можно экспортировать и импортировать в настройках. Импорт создаёт черновик; применение требует сохранения.
+The existing Taskboard features remain available. Its optional autonomous
+factory is disabled by default; reading the board and moving stages do not
+start coding agents or infer progress from CI, merges or completed agent turns.
 
-## Для Archivarius
+## Requirements
 
-Используйте команду `bb stageboard stages` с явным проектом. Подробные команды и ограничения описаны в прилагаемом навыке stageboard.
+- BB **0.47.1+**, with a compatible Plugin SDK runtime; tested with SDK **0.6.79**.
+- A BB project with a GitHub repository remote.
+- The GitHub CLI, authenticated for `github.com`; issue write access is needed
+  to change labels and issue states.
+- Node.js **22.19+** for building from source; CI uses Node.js 26.
 
-Публичные операции: getStageProfile, saveStageProfile, listStageItems, stageOptions, updateItemStage, stageLabelSetup. Сервер проверяет проект, профиль и исходные метки этапа. Если произошёл конфликт или ответ потерян, перечитайте задачу перед новым действием.
+The UI inherits Taskboard's layout. Stage-specific messages and defaults are
+currently in Russian; column titles are configurable.
 
-## Разработка
+## Install
 
-Из этой директории: `npm ci`, затем `npm run check`. Для установки подготовленного кандидата используется локальный путь этой директории. Управляемый кеш BB не редактируется.
+Install the first release directly from GitHub:
 
-Идентификатор кандидата — taskboard-stages; CLI — stageboard. У него отдельные данные, mention providers и локальные предпочтения. Настройки и секреты штатного Taskboard не копируются автоматически. Установка в пользовательский BB выполняется после проверки и отдельного решения владельца.
+```bash
+bb plugin install git:https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git@v0.1.0
+```
 
-## Происхождение
+To follow compatible 0.1 releases, use `@^0.1.0` instead. The plugin id is
+`taskboard-stages`, its display name is **Taskboard Stages**, and its CLI is
+`bb stageboard`.
 
-База: https://github.com/MateoCerquetella/bb-plugins, тег taskboard/v0.3.6, коммит 2dcad8a23bd06121b5c42faaf7ea0716f24b4915. UPSTREAM.json хранит контрольные суммы исходных файлов, UPSTREAM-package-lock.json — исходный lock монорепозитория, UPSTREAM-README.md — прежнюю документацию. Текущий package-lock.json фиксирует самостоятельную среду разработки и SDK 0.6.79. Лицензия MIT и исходные уведомления сохранены.
+If you already use the original Taskboard, you can disable it and use this fork
+as its replacement:
 
-Опциональные функции upstream сохранены, но для канбана не требуются. Автономная фабрика по умолчанию отключена.
+```bash
+bb plugin disable taskboard
+```
+
+Disabling preserves the original plugin's data. This fork uses its own storage;
+it does not automatically migrate the original plugin's settings or credentials.
+GitHub authentication continues to use the existing `gh` login.
+
+## Set up a project
+
+1. Open **Taskboard Stages** and select a BB project.
+2. In **Manage**, confirm GitHub as the tracker and check the mapped repository.
+3. Under **Этапы GitHub-канбана**, set column titles, labels and their order.
+   **Пример этапов** fills an editable example; save to apply the profile.
+4. Use **Проверить метки** to check repository labels. If labels are missing,
+   **Создать отсутствующие метки** explicitly creates them.
+5. Switch to **Kanban** and move cards with the stage menu or drag-and-drop.
+
+Saving or importing a profile does not write to GitHub. Creating repository
+labels does not modify issues. An empty profile keeps the standard Taskboard
+view. Issues without a stage appear in **Без этапа**; unknown or multiple stage
+labels appear in **Требует настройки** until an explicit stage assignment fixes them.
+
+Open/Closed has its own filter and control. External GitHub changes appear on
+the next synchronization or manual refresh. Changes through this plugin notify
+the board after confirmation.
+
+## Agent workflow
+
+The bundled [stageboard skill](skills/stageboard/SKILL.md) documents the agent
+interface. Always use an explicit BB project:
+
+```bash
+bb stageboard stages profile --project <project-id> --json
+bb stageboard stages list --project <project-id> --json
+bb stageboard stages options 'owner/repo#42' --project <project-id> --json
+bb stageboard stages move 'owner/repo#42' stage:review --project <project-id> --json
+```
+
+`stages list` returns a bounded page, revision and `nextOffset`. Follow the
+continuation instructions in the skill to read the entire board consistently.
+`stages prepare` is the separate, explicit command for creating missing labels.
+
+The project coordinator decides when work reaches a stage; a service agent such
+as Archivarius maintains the board. The human UI and agents use the same stage
+operation. A stage write rechecks current labels, updates individual stage
+labels and verifies the result. On a conflict or an uncertain response, refresh
+before retrying. GitHub's separate label calls do not form one transaction.
+
+![Taskboard Stages in the BB side panel with synthetic tasks](docs/images/panel.jpg)
+
+## Develop and update
+
+```bash
+git clone https://github.com/VyacheslavTeplyakov/bb-taskboard-stages.git
+cd bb-taskboard-stages
+npm ci
+npm run check
+```
+
+The checks cover SDK types, TypeScript, 345 automated tests, server/app/host
+builds and bundle metadata. Tests use fixtures and do not require GitHub
+credentials. The first release was also checked in an isolated BB with real
+GitHub writes, native drag-and-drop, conflicts and restart recovery.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the upstream update workflow. The
+default development branch is `taskboard-stages`; upstream `main` retains the
+original multi-plugin layout.
+
+## Provenance and license
+
+MIT. Original copyright and third-party notices are retained in
+[LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Base: Taskboard **0.3.6**, tag `taskboard/v0.3.6`, commit
+`2dcad8a23bd06121b5c42faaf7ea0716f24b4915`. The fork preserves upstream history
+and separates extraction, implementation and publication commits.
+`UPSTREAM.json` records source hashes; `UPSTREAM-README.md` and
+`UPSTREAM-package-lock.json` preserve upstream documentation and the original
+monorepo lockfile. The current `package-lock.json` pins this standalone package.
+See [AUTHORS.md](AUTHORS.md) for attribution.
